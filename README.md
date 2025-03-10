@@ -70,22 +70,127 @@ In advanced stages, the focus shifts to improving query performance. Some optimi
 
 ### Easy Level
 1. Retrieve the names of all tracks that have more than 1 billion streams.
+   ```sql
+SELECT * FROM spotify
+WHERE stream > 1000000000;
+
+   ```
 2. List all albums along with their respective artists.
+ ```sql
+SELECT 
+	DISTINCT album,
+	artist
+FROM spotify;
+   ```
 3. Get the total number of comments for tracks where `licensed = TRUE`.
+ ```sql
+SELECT 
+	track,
+	SUM(comments) total_comments
+FROM spotify
+WHERE licensed = true
+GROUP BY track;
+	
+   ```
 4. Find all tracks that belong to the album type `single`.
+ ```sql
+SELECT 
+	DISTINCT track,
+	album_type
+FROM spotify
+WHERE album_type ILIKE 'single';
+   ```
 5. Count the total number of tracks by each artist.
+ ```sql
+SELECT 
+	artist,
+	COUNT(track) AS total_tracks
+FROM spotify
+GROUP BY artist;
+   ```
 
 ### Medium Level
 1. Calculate the average danceability of tracks in each album.
+ ```sql
+SELECT 
+	album,
+	AVG(danceability)
+FROM spotify
+GROUP BY album
+ORDER BY 2 DESC
+ ```
 2. Find the top 5 tracks with the highest energy values.
+ ```sql
+SELECT
+	track,
+	MAX(energy) AS energy_values
+FROM spotify
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 5;
+ ```
 3. List all tracks along with their views and likes where `official_video = TRUE`.
+ ```sql
+SELECT 
+	track,
+	SUM(views) AS total_views,
+	SUM(likes) AS total_likes
+FROM spotify
+WHERE official_video = 'true'
+GROUP BY track;
+```
 4. For each album, calculate the total views of all associated tracks.
+ ```sql
+SELECT
+	album,
+	track,
+	SUM(views) AS total_views
+FROM spotify
+GROUP BY album, track
+ORDER BY total_views DESC;
+   ```
 5. Retrieve the track names that have been streamed on Spotify more than YouTube.
+ ```sql
+SELECT * FROM 
+(
+SELECT 
+	track,
+	SUM(CASE WHEN most_played_on = 'Spotify' THEN stream ELSE 0 END) AS streamed_on_spotify,
+	SUM(CASE WHEN most_played_on = 'Youtube' THEN stream ELSE 0 END) AS streamed_on_youtube
+FROM spotify
+GROUP BY track
+) AS t1
+WHERE streamed_on_spotify > streamed_on_youtube
+AND streamed_on_youtube != 0;
+   ```
 
 ### Advanced Level
 1. Find the top 3 most-viewed tracks for each artist using window functions.
+ ```sql
+SELECT * FROM (
+SELECT 
+	artist,
+	track,
+	SUM(views) AS total_views,
+	RANK() OVER(PARTITION BY artist ORDER BY SUM(views) DESC) AS rank
+FROM spotify
+GROUP BY artist, track
+) AS t1
+WHERE rank <= 3
+
+   ```
 2. Write a query to find tracks where the liveness score is above the average.
-3. **Use a `WITH` clause to calculate the difference between the highest and lowest energy values for tracks in each album.**
+ ```sql
+SELECT 
+	tracK,
+	artist,
+	liveness
+FROM spotify
+WHERE liveness > (SELECT AVG(liveness) FROM spotify)
+ORDER BY liveness DESC
+
+   ```
+3. Use a `WITH` clause to calculate the difference between the highest and lowest energy values for tracks in each album.
 ```sql
 WITH cte
 AS
@@ -103,11 +208,31 @@ FROM cte
 ORDER BY 2 DESC
 ```
    
-5. Find tracks where the energy-to-liveness ratio is greater than 1.2.
-6. Calculate the cumulative sum of likes for tracks ordered by the number of views, using window functions.
-
-
-Here’s an updated section for your **Spotify Advanced SQL Project and Query Optimization** README, focusing on the query optimization task you performed. You can include the specific screenshots and graphs as described.
+4. Find tracks where the energy-to-liveness ratio is greater than 1.2.
+ ```sql
+WITH album_energy_stats AS (
+    SELECT
+        album,
+        MAX(energy) AS highest_energy,
+        MIN(energy) AS lowest_energy
+    FROM spotify
+    GROUP BY album
+)
+SELECT 
+    album,
+    ROUND((highest_energy - lowest_energy)::NUMERIC, 2) AS energy_diff
+FROM album_energy_stats;
+   ```
+5. Calculate the cumulative sum of likes for tracks ordered by the number of views, using window functions.
+ ```sql
+SELECT 
+    track, 
+    energy, 
+    liveness, 
+    (energy / NULLIF(liveness, 0)) AS energy_liveness_ratio
+FROM spotify
+WHERE (energy / NULLIF(liveness, 0)) > 1.2;
+   ```
 
 ---
 
@@ -151,27 +276,3 @@ This optimization shows how indexing can drastically reduce query time, improvin
 - **Database**: PostgreSQL
 - **SQL Queries**: DDL, DML, Aggregations, Joins, Subqueries, Window Functions
 - **Tools**: pgAdmin 4 (or any SQL editor), PostgreSQL (via Homebrew, Docker, or direct installation)
-
-## How to Run the Project
-1. Install PostgreSQL and pgAdmin (if not already installed).
-2. Set up the database schema and tables using the provided normalization structure.
-3. Insert the sample data into the respective tables.
-4. Execute SQL queries to solve the listed problems.
-5. Explore query optimization techniques for large datasets.
-
----
-
-## Next Steps
-- **Visualize the Data**: Use a data visualization tool like **Tableau** or **Power BI** to create dashboards based on the query results.
-- **Expand Dataset**: Add more rows to the dataset for broader analysis and scalability testing.
-- **Advanced Querying**: Dive deeper into query optimization and explore the performance of SQL queries on larger datasets.
-
----
-
-## Contributing
-If you would like to contribute to this project, feel free to fork the repository, submit pull requests, or raise issues.
-
----
-
-## License
-This project is licensed under the MIT License.
