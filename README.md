@@ -73,8 +73,7 @@ In advanced stages, the focus shifts to improving query performance. Some optimi
    ```sql
 SELECT * FROM spotify
 WHERE stream > 1000000000;
-
-   ```
+```
 2. List all albums along with their respective artists.
  ```sql
 SELECT 
